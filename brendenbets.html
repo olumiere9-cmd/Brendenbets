@@ -12,8 +12,10 @@ background:#0b3d0b;
 color:white;
 text-align:center;
 overflow:hidden;
-cursor:crosshair;
+cursor:none;
 }
+
+/* header */
 
 header{
 background:#111;
@@ -24,6 +26,8 @@ letter-spacing:2px;
 box-shadow:0 4px 10px rgba(0,0,0,0.6);
 }
 
+/* hud */
+
 #hud{
 display:flex;
 justify-content:center;
@@ -32,16 +36,18 @@ font-size:22px;
 margin:10px;
 }
 
+/* racecourse */
+
 #racecourse{
 width:1100px;
 height:550px;
 margin:auto;
 position:relative;
-background:#2e7d32;
+background:linear-gradient(#2e7d32,#1b5e20);
 border:8px solid #5d4037;
 border-radius:20px;
 overflow:hidden;
-box-shadow:0 0 30px rgba(0,0,0,0.7);
+box-shadow:0 0 40px rgba(0,0,0,0.8);
 }
 
 /* crowd */
@@ -70,28 +76,28 @@ border:18px solid #d7ccc8;
 border-radius:50%;
 top:90px;
 left:110px;
-background:transparent;
 }
 
-/* horse */
+/* horses */
 
 .horse{
 position:absolute;
 width:120px;
 height:90px;
-cursor:pointer;
+transition:transform .1s;
 }
 
-/* horse body */
+/* body */
 
 .horse-body{
 width:80px;
 height:40px;
-background:#6d4c41;
+background:linear-gradient(#8d6e63,#4e342e);
 border-radius:20px;
 position:absolute;
 bottom:0;
 left:25px;
+box-shadow:0 3px 4px rgba(0,0,0,.5);
 }
 
 .horse-head{
@@ -112,12 +118,18 @@ height:22px;
 background:#3e2723;
 position:absolute;
 bottom:-18px;
+animation:run .3s infinite alternate;
 }
 
 .l1{left:30px}
-.l2{left:50px}
+.l2{left:50px;animation-delay:.1s}
 .l3{left:65px}
-.l4{left:85px}
+.l4{left:85px;animation-delay:.1s}
+
+@keyframes run{
+from{transform:rotate(15deg)}
+to{transform:rotate(-15deg)}
+}
 
 /* jockey */
 
@@ -132,7 +144,6 @@ width:20px;
 height:20px;
 background:#f1c27d;
 border-radius:50%;
-margin:auto;
 }
 
 .jockey-body{
@@ -140,7 +151,6 @@ width:30px;
 height:25px;
 background:#1db954;
 position:relative;
-margin:auto;
 }
 
 .jockey-body::after{
@@ -154,7 +164,58 @@ left:9px;
 transform:rotate(45deg);
 }
 
-/* button */
+/* crosshair */
+
+#crosshair{
+position:absolute;
+width:40px;
+height:40px;
+pointer-events:none;
+z-index:1000;
+}
+
+.cross{
+position:absolute;
+background:red;
+}
+
+.cross.h{
+width:40px;
+height:2px;
+top:19px;
+}
+
+.cross.v{
+height:40px;
+width:2px;
+left:19px;
+}
+
+.cross.center{
+width:6px;
+height:6px;
+border-radius:50%;
+background:red;
+top:17px;
+left:17px;
+}
+
+/* hit flash */
+
+.hit{
+position:absolute;
+width:40px;
+height:40px;
+border-radius:50%;
+background:rgba(255,255,0,.6);
+animation:hit .4s forwards;
+pointer-events:none;
+}
+
+@keyframes hit{
+from{transform:scale(.3);opacity:1}
+to{transform:scale(2);opacity:0}
+}
 
 button{
 margin-top:15px;
@@ -190,6 +251,12 @@ background:#ffca28;
 
 <button onclick="startGame()">Start Race</button>
 
+<div id="crosshair">
+<div class="cross h"></div>
+<div class="cross v"></div>
+<div class="cross center"></div>
+</div>
+
 <script>
 
 let horses=[]
@@ -199,6 +266,33 @@ let time=30
 let running=false
 
 const racecourse=document.getElementById("racecourse")
+
+/* crosshair follow */
+
+const cross=document.getElementById("crosshair")
+
+document.addEventListener("mousemove",e=>{
+cross.style.left=e.pageX-20+"px"
+cross.style.top=e.pageY-20+"px"
+})
+
+/* hit effect */
+
+document.addEventListener("click",e=>{
+
+const hit=document.createElement("div")
+hit.className="hit"
+
+hit.style.left=e.pageX-20+"px"
+hit.style.top=e.pageY-20+"px"
+
+document.body.appendChild(hit)
+
+setTimeout(()=>hit.remove(),400)
+
+})
+
+/* create horse */
 
 function createHorse(){
 
@@ -212,16 +306,19 @@ horse.innerHTML=`
 <div class="leg l2"></div>
 <div class="leg l3"></div>
 <div class="leg l4"></div>
-
 <div class="jockey">
 <div class="jockey-head"></div>
 <div class="jockey-body"></div>
 </div>
 `
 
+horse.speed=0.015+Math.random()*0.02
+
 horse.onclick=()=>{
 score++
 document.getElementById("score").textContent=score
+horse.style.transform="scale(1.2)"
+setTimeout(()=>horse.style.transform="scale(1)",100)
 }
 
 racecourse.appendChild(horse)
@@ -229,11 +326,13 @@ horses.push(horse)
 
 }
 
+/* move horses */
+
 function moveHorses(){
 
 if(!running) return
 
-angle+=0.02
+angle+=0.01
 
 const centerX=550
 const centerY=300
@@ -245,8 +344,8 @@ horses.forEach((horse,i)=>{
 
 const offset=i*1.5
 
-const x=centerX + radiusX*Math.cos(angle+offset) - 60
-const y=centerY + radiusY*Math.sin(angle+offset) - 40
+const x=centerX + radiusX*Math.cos(angle*horse.speed*60+offset) - 60
+const y=centerY + radiusY*Math.sin(angle*horse.speed*60+offset) - 40
 
 horse.style.left=x+"px"
 horse.style.top=y+"px"
@@ -256,6 +355,8 @@ horse.style.top=y+"px"
 requestAnimationFrame(moveHorses)
 
 }
+
+/* start */
 
 function startGame(){
 
@@ -270,7 +371,7 @@ document.getElementById("time").textContent=time
 
 racecourse.innerHTML='<div class="crowd"></div><div class="track"></div>'
 
-for(let i=0;i<3;i++){
+for(let i=0;i<4;i++){
 createHorse()
 }
 
